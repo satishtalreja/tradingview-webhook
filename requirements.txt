@@ -2,3 +2,7 @@ Flask==2.3.2
 gunicorn==21.2.0
 pandas==2.2.1  # if you're using pandas for saving CSV
 openpyxl==3.1.2
+google-api-python-client==2.127.0
+google-auth==2.29.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
