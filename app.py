@@ -19,6 +19,7 @@ def get_drive_service():
     if not json_creds:
         raise ValueError("Missing GOOGLE_CLIENT_SECRET_JSON env variable")
 
+    print(f"Type of json_creds: {type(json_creds)}")
     creds_dict = json.loads(json_creds)
     creds = service_account.Credentials.from_service_account_info(
         creds_dict,
