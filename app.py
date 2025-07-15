@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 import pandas as pd
 import pytz
@@ -7,14 +7,14 @@ import os
 
 app = Flask(__name__)
 
-# Configure SQLite for simplicity (auto creates signals.db)
+# Configure SQLite for simplicity
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///signals.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # Define table model
 class Signal(db.Model):
-    id = db.Column(db.Integer, primary_key=True)  # serial number
+    id = db.Column(db.Integer, primary_key=True)
     symbol = db.Column(db.String(50))
     event = db.Column(db.String(20))
     price = db.Column(db.Float)
@@ -52,7 +52,7 @@ def webhook():
         ist_time = utc_time.astimezone(pytz.timezone("Asia/Kolkata"))
         time_str = ist_time.strftime("%d-%m-%Y %H:%M:%S")
 
-        # Create DataFrame for potential future processing
+        # Create DataFrame (for logs / inspection)
         new_entry = pd.DataFrame([{
             "symbol": symbol,
             "event": event,
@@ -60,7 +60,6 @@ def webhook():
             "time": time_str
         }])
 
-        # Print to Railway logs
         print("🔔 Webhook received:")
         print(new_entry)
 
@@ -78,8 +77,17 @@ def webhook():
         print(f"❌ Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/signals', methods=['GET'])
+@app.route('/signals', methods=['GET', 'POST'])
 def view_signals():
+    if request.method == 'POST':
+        try:
+            Signal.query.delete()
+            db.session.commit()
+            print("⚠️ All records deleted from signals table.")
+        except Exception as e:
+            print(f"❌ Error while deleting records: {e}")
+        return redirect(url_for('view_signals'))
+
     signals = Signal.query.all()
 
     table_html = """
@@ -87,15 +95,27 @@ def view_signals():
     <head>
         <title>Stored Signals</title>
         <style>
-            body { font-family: Arial; background-color: #f9f9f9; padding: 20px; }
+            body { font-family: Arial; background-color: #f9f9f9; padding: 20px; text-align: center; }
             table { border-collapse: collapse; width: 80%; margin: auto; }
             th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
             th { background-color: #f0f0f0; }
             h1 { text-align: center; }
+            .delete-button {
+                background-color: red;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 20px;
+            }
         </style>
     </head>
     <body>
         <h1>📊 Stored TradingView Signals</h1>
+        <form method="post" onsubmit="return confirm('Are you sure you want to delete all records?');">
+            <button type="submit" class="delete-button">🚨 Delete All Records</button>
+        </form>
         <table>
             <tr>
                 <th>ID</th>
