@@ -39,7 +39,8 @@ def webhook():
             "price": price,
             "time": time_str
         }])
-
+        print("🔔 Webhook received:")
+        print(new_entry)
         # Return DataFrame content as JSON for easy checking
         return jsonify({
             "status": "success",
